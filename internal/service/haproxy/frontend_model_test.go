@@ -26,8 +26,11 @@ func TestFrontendModel_toAPIMapsCertificateRefIDs(t *testing.T) {
 		SSLEnabled:         types.BoolValue(true),
 		Certificates:       types.SetValueMust(types.StringType, []attr.Value{types.StringValue("cert-ref-2"), types.StringValue("cert-ref-1")}),
 		DefaultCertificate: types.StringValue("cert-ref-1"),
-		LinkedActions:      types.SetValueMust(types.StringType, []attr.Value{}),
-		ForwardFor:         types.BoolValue(true),
+		LinkedActions: types.ListValueMust(types.StringType, []attr.Value{
+			types.StringValue("action-2"),
+			types.StringValue("action-1"),
+		}),
+		ForwardFor: types.BoolValue(true),
 	}
 
 	req := model.toAPI(context.Background())
@@ -36,6 +39,9 @@ func TestFrontendModel_toAPIMapsCertificateRefIDs(t *testing.T) {
 	}
 	if req.SSLDefaultCertificate != "cert-ref-1" {
 		t.Fatalf("ssl_default_certificate = %q, want cert-ref-1", req.SSLDefaultCertificate)
+	}
+	if req.LinkedActions != "action-2,action-1" {
+		t.Fatalf("linked_actions = %q, want action order preserved", req.LinkedActions)
 	}
 }
 
@@ -52,7 +58,7 @@ func TestFrontendModel_toAPIIgnoresCertificatesWhenSSLDisabled(t *testing.T) {
 		SSLEnabled:         types.BoolValue(false),
 		Certificates:       types.SetValueMust(types.StringType, []attr.Value{types.StringValue("cert-ref-1")}),
 		DefaultCertificate: types.StringValue("cert-ref-1"),
-		LinkedActions:      types.SetValueMust(types.StringType, []attr.Value{}),
+		LinkedActions:      types.ListValueMust(types.StringType, []attr.Value{}),
 		ForwardFor:         types.BoolValue(false),
 	}
 
@@ -75,7 +81,7 @@ func TestFrontendModel_fromAPIMapsCertificateRefIDs(t *testing.T) {
 		SSLEnabled:            "1",
 		SSLCertificates:       opnsense.SelectedMapList{"cert-ref-1", "cert-ref-2"},
 		SSLDefaultCertificate: opnsense.SelectedMap("cert-ref-1"),
-		LinkedActions:         opnsense.SelectedMapList{},
+		LinkedActions:         opnsense.OrderedSelectedMapList{"action-2", "action-1"},
 		ForwardFor:            "1",
 	}, "frontend-1")
 
@@ -84,5 +90,8 @@ func TestFrontendModel_fromAPIMapsCertificateRefIDs(t *testing.T) {
 	}
 	if len(model.Certificates.Elements()) != 2 {
 		t.Fatalf("expected 2 certificate refids, got %#v", model.Certificates.Elements())
+	}
+	if got := model.LinkedActions.Elements(); len(got) != 2 || got[0].(types.String).ValueString() != "action-2" || got[1].(types.String).ValueString() != "action-1" {
+		t.Fatalf("linked action order was not preserved: %#v", got)
 	}
 }

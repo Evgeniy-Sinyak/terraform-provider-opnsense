@@ -81,11 +81,11 @@ func (r *frontendResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Computed:            true,
 				MarkdownDescription: "Default HAProxy certificate refid for this frontend. This is a certificate refid, not an API UUID, and is only meaningful when `ssl_enabled = true`.",
 			},
-			"linked_actions": schema.SetAttribute{
+			"linked_actions": schema.ListAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Set of HAProxy action UUIDs linked to this frontend for ACL-based routing.",
+				MarkdownDescription: "Ordered list of HAProxy action UUIDs linked to this frontend for ACL-based routing.",
 			},
 			"forward_for": schema.BoolAttribute{
 				Optional:            true,
